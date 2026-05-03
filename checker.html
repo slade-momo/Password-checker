@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyseur de Force de Mot de Passe</title>
+    <link rel="stylesheet" href="checker.css">
+</head>
+<body>
+    <div class="container">
+        <h1> Analyseur de Force de Mot de Passe</h1>
+        <div class="subtitle">Vérifiez la robustesse de votre mot de passe</div>
+        
+        <div class="input-group">
+            <label> Entrez votre mot de passe</label>
+            <div class="password-input-wrapper">
+                <input type="password" id="password" placeholder="Votre mot de passe...">
+                <span class="toggle-password" onclick="togglePassword()">👁️</span>
+            </div>
+        </div>
+
+        <div class="strength-meter">
+            <div class="strength-bar">
+                <div class="strength-fill" id="strengthFill"></div>
+            </div>
+            <div class="strength-text" id="strengthText">Entrez un mot de passe</div>
+        </div>
+
+        <div class="criteria" id="criteria">
+            <div class="criterion" id="length">
+                <span class="criterion-icon">❌</span>
+                <span>8+ caractères</span>
+            </div>
+            <div class="criterion" id="uppercase">
+                <span class="criterion-icon">❌</span>
+                <span>Majuscules (A-Z)</span>
+            </div>
+            <div class="criterion" id="lowercase">
+                <span class="criterion-icon">❌</span>
+                <span>Minuscules (a-z)</span>
+            </div>
+            <div class="criterion" id="digits">
+                <span class="criterion-icon">❌</span>
+                <span>Chiffres (0-9)</span>
+            </div>
+            <div class="criterion" id="special">
+                <span class="criterion-icon">❌</span>
+                <span>Caractères spéciaux</span>
+            </div>
+            <div class="criterion" id="repetition">
+                <span class="criterion-icon">❌</span>
+                <span>Peu de répétitions</span>
+            </div>
+            <div class="criterion" id="common">
+                <span class="criterion-icon">❌</span>
+                <span>Non présent dans les mots communs</span>
+            </div>
+        </div>
+
+        <div class="feedback" id="feedback">
+            <h3> Recommandations</h3>
+            <p id="feedbackText">Entrez un mot de passe pour voir les suggestions d'amélioration.</p>
+        </div>
+        <div class="common-passwords">
+             Évitez les mots de passe courants comme "123456", "password", "admin", etc.
+        </div>
+    </div>
+
+    <script src="checker.js"></script>
+</body>
+</html>
