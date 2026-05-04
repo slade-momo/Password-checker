@@ -1,71 +1,122 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analyseur de Force de Mot de Passe</title>
-    <link rel="stylesheet" href="checker.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PassGuard — Vérificateur de mot de passe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="checker.css" />
 </head>
 <body>
-    <div class="container">
-        <h1> Analyseur de Force de Mot de Passe</h1>
-        <div class="subtitle">Vérifiez la robustesse de votre mot de passe</div>
-        
+
+  <div class="scanline"></div>
+  <div class="noise"></div>
+
+  <div class="container">
+
+    <header>
+      <div class="logo">
+        <span class="bracket">[</span>
+        <span class="logo-text">PASS<span class="accent">GUARD</span></span>
+        <span class="bracket">]</span>
+      </div>
+      <p class="tagline">Analyseur de robustesse de mot de passe</p>
+    </header>
+
+    <main>
+      <div class="card">
+
         <div class="input-group">
-            <label> Entrez votre mot de passe</label>
-            <div class="password-input-wrapper">
-                <input type="password" id="password" placeholder="Votre mot de passe...">
-                <span class="toggle-password" onclick="togglePassword()">👁️</span>
-            </div>
+          <label for="password">ENTREZ VOTRE MOT DE PASSE</label>
+          <div class="input-wrapper">
+            <span class="prompt">&gt;_</span>
+            <input
+              type="password"
+              id="password"
+              placeholder="••••••••••••"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="toggle-btn" id="toggleBtn" title="Afficher/Masquer">
+              <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <div class="strength-meter">
-            <div class="strength-bar">
-                <div class="strength-fill" id="strengthFill"></div>
-            </div>
-            <div class="strength-text" id="strengthText">Entrez un mot de passe</div>
+        <!-- Barre de force -->
+        <div class="strength-section" id="strengthSection">
+          <div class="strength-label">
+            <span class="label-text">FORCE :</span>
+            <span class="strength-name" id="strengthName">—</span>
+          </div>
+          <div class="strength-bar-track">
+            <div class="strength-bar" id="strengthBar"></div>
+          </div>
+          <div class="strength-score" id="strengthScore"></div>
         </div>
 
-        <div class="criteria" id="criteria">
-            <div class="criterion" id="length">
-                <span class="criterion-icon">❌</span>
-                <span>8+ caractères</span>
-            </div>
-            <div class="criterion" id="uppercase">
-                <span class="criterion-icon">❌</span>
-                <span>Majuscules (A-Z)</span>
-            </div>
-            <div class="criterion" id="lowercase">
-                <span class="criterion-icon">❌</span>
-                <span>Minuscules (a-z)</span>
-            </div>
-            <div class="criterion" id="digits">
-                <span class="criterion-icon">❌</span>
-                <span>Chiffres (0-9)</span>
-            </div>
-            <div class="criterion" id="special">
-                <span class="criterion-icon">❌</span>
-                <span>Caractères spéciaux</span>
-            </div>
-            <div class="criterion" id="repetition">
-                <span class="criterion-icon">❌</span>
-                <span>Peu de répétitions</span>
-            </div>
-            <div class="criterion" id="common">
-                <span class="criterion-icon">❌</span>
-                <span>Non présent dans les mots communs</span>
-            </div>
+        <!-- Critères -->
+        <div class="criteria-grid" id="criteriaGrid">
+          <div class="criterion" id="crit-length">
+            <span class="crit-icon">○</span>
+            <span class="crit-text">8 caractères minimum</span>
+          </div>
+          <div class="criterion" id="crit-upper">
+            <span class="crit-icon">○</span>
+            <span class="crit-text">Lettre majuscule (A-Z)</span>
+          </div>
+          <div class="criterion" id="crit-lower">
+            <span class="crit-icon">○</span>
+            <span class="crit-text">Lettre minuscule (a-z)</span>
+          </div>
+          <div class="criterion" id="crit-number">
+            <span class="crit-icon">○</span>
+            <span class="crit-text">Chiffre (0-9)</span>
+          </div>
+          <div class="criterion" id="crit-special">
+            <span class="crit-icon">○</span>
+            <span class="crit-text">Caractère spécial (!@#$…)</span>
+          </div>
+          <div class="criterion" id="crit-long">
+            <span class="crit-icon">○</span>
+            <span class="crit-text">16 caractères ou plus</span>
+          </div>
         </div>
 
-        <div class="feedback" id="feedback">
-            <h3> Recommandations</h3>
-            <p id="feedbackText">Entrez un mot de passe pour voir les suggestions d'amélioration.</p>
+        <!-- Alerte mot de passe compromis (visible uniquement via Electron) -->
+        <div class="compromis-alert" id="compromisAlert">
+          <span class="compromis-icon">⚠</span>
+          <div class="compromis-text">
+            <strong>MOT DE PASSE COMPROMIS</strong>
+            <span id="compromisDetail">Ce mot de passe figure dans notre liste locale de mots de passe courants. Il est immédiatement devinable.</span>
+          </div>
         </div>
-        <div class="common-passwords">
-             Évitez les mots de passe courants comme "123456", "password", "admin", etc.
-        </div>
-    </div>
 
-    <script src="checker.js"></script>
+        <!-- Conseil -->
+        <div class="tip-box" id="tipBox">
+          <span class="tip-label">CONSEIL SYS :</span>
+          <span id="tipText">Commencez à taper pour analyser votre mot de passe.</span>
+        </div>
+
+        <!-- Temps de crack estimé -->
+        <div class="crack-time" id="crackTime">
+          <span class="crack-label">TEMPS DE CRACK ESTIMÉ :</span>
+          <span class="crack-value" id="crackValue">—</span>
+        </div>
+
+      </div>
+    </main>
+
+    <footer>
+      <p>Analyse 100% locale · <span id="footerListeInfo">liste de mots de passe courants chargée</span></p>
+    </footer>
+
+  </div>
+
+  <script src="checker.js"></script>
 </body>
 </html>
