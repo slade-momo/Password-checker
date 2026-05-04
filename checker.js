@@ -1,237 +1,206 @@
-// Liste des mots de passe les plus communs
-const commonPasswords = [
-    'password', '123456', '123456789', 'qwerty', 'abc123', 'monkey', 'letmein', 
-    'dragon', 'baseball', 'iloveyou', 'trustno1', 'sunshine', 'master', 'hello', 
-    'admin', 'welcome', 'shadow', 'football', 'princess', 'michael', 'nicole', 
-    'jessica', 'charlie', 'access', 'buster', 'pepper', 'qwertyuiop', 'azerty',
-    '000000', '111111', '123123', '1234567', 'password1', 'p@ssword', 'admin123',
-    'root', 'toor', 'qwerty123', '1q2w3e4r', 'zaq12wsx', '123qwe', 'qwe123'
+
+
+const input        = document.getElementById('password');
+const toggleBtn    = document.getElementById('toggleBtn');
+const strengthBar  = document.getElementById('strengthBar');
+const strengthName = document.getElementById('strengthName');
+const strengthScore= document.getElementById('strengthScore');
+const strengthSec  = document.getElementById('strengthSection');
+const crackValue   = document.getElementById('crackValue');
+const tipText      = document.getElementById('tipText');
+
+// --- Critères DOM ---
+const crits = {
+  length:  document.getElementById('crit-length'),
+  upper:   document.getElementById('crit-upper'),
+  lower:   document.getElementById('crit-lower'),
+  number:  document.getElementById('crit-number'),
+  special: document.getElementById('crit-special'),
+  long:    document.getElementById('crit-long'),
+};
+
+// --- Icônes ---
+const ICON_EMPTY   = '○';
+const ICON_CHECKED = '●';
+
+// ====================================================
+// Afficher / masquer le mot de passe
+// ====================================================
+toggleBtn.addEventListener('click', () => {
+  const isPassword = input.type === 'password';
+  input.type = isPassword ? 'text' : 'password';
+  toggleBtn.querySelector('svg').style.opacity = isPassword ? '0.4' : '1';
+});
+
+// ====================================================
+// Analyse principale
+// ====================================================
+input.addEventListener('input', () => {
+  const pwd = input.value;
+
+  if (pwd.length === 0) {
+    reset();
+    return;
+  }
+
+  strengthSec.classList.add('visible');
+
+  // --- Évaluation des critères ---
+  const checks = {
+    length:  pwd.length >= 8,
+    upper:   /[A-Z]/.test(pwd),
+    lower:   /[a-z]/.test(pwd),
+    number:  /[0-9]/.test(pwd),
+    special: /[^A-Za-z0-9]/.test(pwd),
+    long:    pwd.length >= 16,
+  };
+
+  // Mise à jour visuelle des critères
+  for (const [key, passed] of Object.entries(checks)) {
+    const el   = crits[key];
+    const icon = el.querySelector('.crit-icon');
+    if (passed) {
+      el.classList.add('passed');
+      icon.textContent = ICON_CHECKED;
+    } else {
+      el.classList.remove('passed');
+      icon.textContent = ICON_EMPTY;
+    }
+  }
+
+  // --- Score de force (0-4) ---
+  const score = calcScore(pwd, checks);
+
+  // --- Mise à jour UI ---
+  applyStrength(score, pwd, checks);
+});
+
+// ====================================================
+// Calcul du score (0 → 4)
+// ====================================================
+function calcScore(pwd, checks) {
+  let score = 0;
+
+  // Critères de base (chaque critère rempli = +1, max 4 pour les 4 premiers)
+  const baseChecks = [checks.length, checks.upper, checks.lower, checks.number, checks.special];
+  const baseCount  = baseChecks.filter(Boolean).length;
+
+  if (baseCount <= 1) score = 0;
+  else if (baseCount === 2) score = 1;
+  else if (baseCount === 3) score = 2;
+  else if (baseCount === 4) score = 3;
+  else score = 3;
+
+  // Bonus longueur
+  if (checks.long && score >= 3) score = 4;
+  if (pwd.length >= 20)          score = Math.min(4, score + 1);
+
+  // Pénalité : motifs répétitifs évidents
+  if (/(.)\1{3,}/.test(pwd)) score = Math.max(0, score - 1);        // ex: aaaa
+  if (/^[a-z]+$/.test(pwd.toLowerCase()) && pwd.length < 12) score = Math.min(score, 1);
+
+  return Math.min(4, Math.max(0, score));
+}
+
+// ====================================================
+// Application visuelle selon score
+// ====================================================
+const LEVELS = [
+  { name: 'TRÈS FAIBLE', color: '#ff3d5a' },
+  { name: 'FAIBLE',      color: '#ff3d5a' },
+  { name: 'MOYEN',       color: '#ffb800' },
+  { name: 'FORT',        color: '#8bc34a' },
+  { name: 'TRÈS FORT',   color: '#00ff88' },
 ];
 
-// Fonction pour vérifier si le mot de passe contient des séquences répétées
-function hasRepetitions(password) {
-    // Vérifie les répétitions de caractères (aaa, 111, etc.)
-    if (/(.)\1{2,}/.test(password)) return true;
-    
-    // Vérifie les motifs répétés (abcabc)
-    for (let i = 0; i < password.length - 3; i++) {
-        const pattern = password.substr(i, 3);
-        if (password.indexOf(pattern, i + 3) !== -1) return true;
-    }
-    
-    return false;
+function applyStrength(score, pwd, checks) {
+  const level = LEVELS[score];
+
+  // Barre
+  strengthBar.className = 'strength-bar s' + score;
+
+  // Label
+  strengthName.textContent = level.name;
+  strengthName.style.color = level.color;
+
+  // Score textuel
+  const passedCount = Object.values(checks).filter(Boolean).length;
+  strengthScore.textContent = `${passedCount} / ${Object.keys(checks).length} critères remplis · longueur : ${pwd.length}`;
+
+  // Temps de crack estimé
+  crackValue.textContent = estimateCrackTime(pwd, checks);
+  crackValue.style.color = level.color;
+
+  // Conseil contextuel
+  tipText.textContent = getTip(pwd, checks, score);
 }
 
-// Fonction pour vérifier les séquences communes
-function hasCommonSequences(password) {
-    const commonSequences = [
-        '123', '234', '345', '456', '567', '678', '789', '890',
-        'abc', 'bcd', 'cde', 'def', 'efg', 'fgh', 'ghi', 'hij',
-        'qwert', 'azerty', 'zxcvbn', 'asdf', 'qwer', 'wert', 'erty',
-        'rtyu', 'tyui', 'yuio', 'uiop'
-    ];
-    
-    const lowerPass = password.toLowerCase();
-    return commonSequences.some(seq => lowerPass.includes(seq));
+// ====================================================
+// Estimation du temps de crack (simplifiée, pédagogique)
+// ====================================================
+function estimateCrackTime(pwd, checks) {
+  let charset = 0;
+  if (checks.lower)   charset += 26;
+  if (checks.upper)   charset += 26;
+  if (checks.number)  charset += 10;
+  if (checks.special) charset += 32;
+  if (charset === 0)  charset = 26;
+
+  // Combinaisons possibles
+  const combinations = Math.pow(charset, pwd.length);
+
+  // Hypothèse : attaque en ligne ~1 000 essais/s, hors-ligne ~1 milliard/s
+  const attemptsPerSec = 1_000_000_000; // offline (GPU)
+  const seconds = combinations / attemptsPerSec;
+
+  return formatTime(seconds);
 }
 
-// Fonction pour vérifier si le mot de passe est trop commun
-function isCommonPassword(password) {
-    const lowerPass = password.toLowerCase();
-    return commonPasswords.includes(lowerPass) || hasCommonSequences(password);
+function formatTime(seconds) {
+  if (seconds < 1)                         return 'Instantané';
+  if (seconds < 60)                        return `${Math.round(seconds)} secondes`;
+  if (seconds < 3600)                      return `${Math.round(seconds/60)} minutes`;
+  if (seconds < 86400)                     return `${Math.round(seconds/3600)} heures`;
+  if (seconds < 86400*30)                  return `${Math.round(seconds/86400)} jours`;
+  if (seconds < 86400*365)                 return `${Math.round(seconds/86400/30)} mois`;
+  if (seconds < 86400*365*100)             return `${Math.round(seconds/86400/365)} ans`;
+  if (seconds < 86400*365*1_000)           return `${Math.round(seconds/86400/365/100)} siècles`;
+  if (seconds < 86400*365*1_000_000)       return `${Math.round(seconds/86400/365/1_000)} millénaires`;
+  return 'Des milliards d\'années ∞';
 }
 
-// Fonction principale d'analyse
-function analyzePassword(password) {
-    const analysis = {
-        length: false,
-        uppercase: false,
-        lowercase: false,
-        digits: false,
-        special: false,
-        noRepetition: false,
-        notCommon: false,
-        score: 0
-    };
-    
-    if (password.length === 0) return analysis;
-    
-    // Vérification de la longueur
-    analysis.length = password.length >= 8;
-    
-    // Vérification des majuscules
-    analysis.uppercase = /[A-Z]/.test(password);
-    
-    // Vérification des minuscules
-    analysis.lowercase = /[a-z]/.test(password);
-    
-    // Vérification des chiffres
-    analysis.digits = /[0-9]/.test(password);
-    
-    // Vérification des caractères spéciaux
-    analysis.special = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
-    
-    // Vérification des répétitions
-    analysis.noRepetition = !hasRepetitions(password) && !/(.)\1/.test(password);
-    
-    // Vérification des mots communs
-    analysis.notCommon = !isCommonPassword(password);
-    
-    // Calcul du score (0-8 points, pondération spéciale)
-    let score = 0;
-    if (analysis.length) score += 2;  // La longueur est plus importante
-    if (analysis.uppercase) score += 1;
-    if (analysis.lowercase) score += 1;
-    if (analysis.digits) score += 1;
-    if (analysis.special) score += 1;
-    if (analysis.noRepetition) score += 1;
-    if (analysis.notCommon) score += 1;
-    
-    analysis.score = score;
-    
-    return analysis;
+// ====================================================
+// Conseils contextuels
+// ====================================================
+function getTip(pwd, checks, score) {
+  if (pwd.length < 8)
+    return 'Votre mot de passe est trop court. Visez au moins 8 caractères.';
+  if (!checks.upper && !checks.lower)
+    return 'Ajoutez des lettres majuscules et minuscules pour augmenter la complexité.';
+  if (!checks.number)
+    return 'Insérez un ou plusieurs chiffres pour renforcer votre mot de passe.';
+  if (!checks.special)
+    return 'Ajoutez des caractères spéciaux ( ! @ # $ % ) pour maximiser la sécurité.';
+  if (!checks.long && score >= 3)
+    return 'Très bon ! Allongez à 16+ caractères pour atteindre le niveau maximal.';
+  if (score === 4)
+    return 'Excellent ! Ce mot de passe est très difficile à craquer. Pensez à le stocker dans un gestionnaire de mots de passe.';
+  return 'Continuez à ajouter de la variété : mélangez lettres, chiffres et symboles.';
 }
 
-// Fonction pour déterminer la force globale
-function getStrengthLevel(score) {
-    if (score === 0) return { text: "", level: 0, color: "#e0e0e0", message: "Entrez un mot de passe pour commencer l'analyse." };
-    if (score <= 2) return { text: "Très Faible", level: 0, color: "#dc3545", message: "❌ Mot de passe très dangereux ! Se cracke en quelques secondes." };
-    if (score <= 3) return { text: "Faible", level: 1, color: "#ffc107", message: "⚠️ Mot de passe faible. Attaques par dictionnaire très efficaces." };
-    if (score <= 5) return { text: "Moyen", level: 2, color: "#17a2b8", message: "👍 Mot de passe acceptable, mais peut être amélioré." };
-    if (score <= 6) return { text: "Fort", level: 3, color: "#28a745", message: "✅ Bon mot de passe ! Résiste à la plupart des attaques." };
-    return { text: "Très Fort", level: 4, color: "#00c851", message: "🏆 Excellent ! Mot de passe robuste hautement sécurisé." };
+// ====================================================
+// Réinitialisation
+// ====================================================
+function reset() {
+  strengthSec.classList.remove('visible');
+  strengthBar.className = 'strength-bar';
+  strengthName.textContent = '—';
+  strengthScore.textContent = '';
+  crackValue.textContent = '—';
+  tipText.textContent = 'Commencez à taper pour analyser votre mot de passe.';
+
+  for (const el of Object.values(crits)) {
+    el.classList.remove('passed');
+    el.querySelector('.crit-icon').textContent = ICON_EMPTY;
+  }
 }
-
-// Fonction pour obtenir des recommandations spécifiques
-function getRecommendations(analysis) {
-    const recommendations = [];
-    
-    if (!analysis.length) recommendations.push("• 📏 Utilisez au moins 8 caractères (idéalement 12+)");
-    if (!analysis.uppercase) recommendations.push("• 🔠 Ajoutez des majuscules (A-Z)");
-    if (!analysis.lowercase) recommendations.push("• 🔡 Ajoutez des minuscules (a-z)");
-    if (!analysis.digits) recommendations.push("• 🔢 Ajoutez des chiffres (0-9)");
-    if (!analysis.special) recommendations.push("• ✨ Ajoutez des caractères spéciaux (!@#$%^&*)");
-    if (!analysis.noRepetition) recommendations.push("• 🚫 Évitez les répétitions de caractères (aaa, 111, abcabc)");
-    if (!analysis.notCommon) recommendations.push("• 🛡️ Évitez les mots de passe courants ou séquences prédictibles");
-    
-    if (recommendations.length === 0) {
-        return "🎉 Parfait ! Votre mot de passe respecte tous les critères de sécurité.";
-    }
-    
-    return recommendations.join('\n');
-}
-
-// Fonction pour calculer le temps de craquage estimé
-function estimateCrackTime(analysis) {
-    const score = analysis.score;
-    if (score <= 2) return "Instantané à quelques secondes";
-    if (score <= 3) return "Quelques minutes à quelques heures";
-    if (score <= 4) return "Quelques jours à quelques semaines";
-    if (score <= 5) return "Quelques mois à quelques années";
-    if (score <= 6) return "Plusieurs années à quelques décennies";
-    return "Des centaines d'années ou plus";
-}
-
-// Mise à jour de l'interface utilisateur
-function updateUI(password) {
-    const analysis = analyzePassword(password);
-    const strengthInfo = getStrengthLevel(analysis.score);
-    
-    // Mise à jour de la barre de force
-    const fillBar = document.getElementById('strengthFill');
-    if (analysis.score === 0) {
-        fillBar.style.width = '0%';
-    } else {
-        fillBar.style.width = `${(analysis.score / 7) * 100}%`;
-    }
-    fillBar.style.backgroundColor = strengthInfo.color;
-    
-    // Mise à jour du texte de force
-    const strengthText = document.getElementById('strengthText');
-    strengthText.textContent = strengthInfo.text;
-    strengthText.style.color = strengthInfo.color;
-    
-    // Mise à jour des critères
-    const criteriaMap = {
-        length: 'length',
-        uppercase: 'uppercase',
-        lowercase: 'lowercase',
-        digits: 'digits',
-        special: 'special',
-        repetition: 'noRepetition',
-        common: 'notCommon'
-    };
-    
-    for (const [elementId, criterion] of Object.entries(criteriaMap)) {
-        const element = document.getElementById(elementId);
-        const isValid = analysis[criterion];
-        
-        if (isValid) {
-            element.classList.add('valid');
-            element.classList.remove('invalid');
-            element.querySelector('.criterion-icon').textContent = '✅';
-        } else if (password.length > 0) {
-            element.classList.add('invalid');
-            element.classList.remove('valid');
-            element.querySelector('.criterion-icon').textContent = '❌';
-        } else {
-            element.classList.remove('valid', 'invalid');
-            element.querySelector('.criterion-icon').textContent = '❌';
-        }
-    }
-    
-    // Mise à jour des recommandations
-    const feedbackText = document.getElementById('feedbackText');
-    if (password.length === 0) {
-        feedbackText.innerHTML = "🔐 Entrez un mot de passe pour analyser sa force et obtenir des recommandations personnalisées.";
-    } else {
-        const recommendations = getRecommendations(analysis);
-        const crackTime = estimateCrackTime(analysis);
-        feedbackText.innerHTML = `<strong>${strengthInfo.message}</strong><br><br>
-                                  <strong>⏱️ Temps de craquage estimé :</strong> ${crackTime}<br><br>
-                                  <strong>📋 Recommandations :</strong><br>${recommendations.replace(/\n/g, '<br>')}`;
-    }
-}
-
-// Fonction pour basculer l'affichage du mot de passe
-function togglePassword() {
-    const passwordInput = document.getElementById('password');
-    const toggleIcon = document.querySelector('.toggle-password');
-    
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        toggleIcon.textContent = '🙈';
-        toggleIcon.style.opacity = '0.7';
-    } else {
-        passwordInput.type = 'password';
-        toggleIcon.textContent = '👁️';
-        toggleIcon.style.opacity = '1';
-    }
-}
-
-// Ajouter un indicateur de force de mot de passe avec animation
-function addStrengthAnimation(level) {
-    const strengthFill = document.getElementById('strengthFill');
-    strengthFill.style.animation = 'none';
-    strengthFill.offsetHeight; // Force reflow
-    strengthFill.style.animation = 'fadeIn 0.3s ease';
-}
-
-// Écouteur d'événements avec debounce pour meilleures performances
-let debounceTimer;
-document.getElementById('password').addEventListener('input', function(e) {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        updateUI(e.target.value);
-    }, 100);
-});
-
-// Analyse initiale avec un mot de passe vide
-updateUI('');
-
-// Empêcher la soumission du formulaire si jamais il y avait un formulaire
-document.querySelector('input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-    }
-});
